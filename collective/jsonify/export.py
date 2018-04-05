@@ -7,6 +7,7 @@ from datetime import datetime
 import logging
 import os
 # import pprint
+from Products.CMFCore.utils import getToolByName
 import shutil
 # import sys
 # import traceback
@@ -317,6 +318,15 @@ def walk(folder, skip_callback=lambda item: False):
         if yield_item:
             # skip yielding items, which do not fullfill constraints from above
             # but allow walking into subdirectories (below)
+            # Create a separate item in the export for each version.
+            # Only yield documents
+            # History will be rebuilt on import as versions are imported
+            repo_tool = getToolByName(folder, "portal_repository")
+            history_metadata = repo_tool.getHistoryMetadata(item)
+            if history_metadata:
+                for i in range(0, history_metadata.getLength(countPurged=False)-1):
+                    if item.portal_type == 'Document':
+                        yield repo_tool.retrieve(item, i).object
             yield item
         if getattr(item, 'objectIds', None) and item.objectIds():
             for subitem in walk(item, skip_callback=skip_callback):
